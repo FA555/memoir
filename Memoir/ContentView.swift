@@ -51,7 +51,13 @@ struct ContentView: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 28)
           } else {
-            HistoryDetailPagerView(photos: store.photos, selectedIndex: $selectedIndex)
+            HistoryDetailPagerView(
+              photos: store.photos,
+              selectedIndex: $selectedIndex,
+              onDeleteCurrent: { localIdentifier in
+                await deleteCurrentPhoto(localIdentifier: localIdentifier)
+              }
+            )
               .frame(maxWidth: .infinity)
           }
 
@@ -165,6 +171,18 @@ struct ContentView: View {
   private func openPhotosApp() {
     guard let url = URL(string: "photos-redirect://") else { return }
     openURL(url)
+  }
+
+  private func deleteCurrentPhoto(localIdentifier: String) async {
+    let didDelete = await store.deletePhoto(localIdentifier: localIdentifier)
+    guard didDelete else { return }
+
+    await store.loadPhotos(month: selectedMonth, day: selectedDay)
+    if store.photos.isEmpty {
+      selectedIndex = 0
+    } else {
+      selectedIndex = min(selectedIndex, store.photos.count - 1)
+    }
   }
 
   private var permissionDeniedView: some View {

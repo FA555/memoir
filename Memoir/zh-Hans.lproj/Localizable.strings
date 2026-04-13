@@ -12,3 +12,6 @@
 "permission.open_settings_desc" = "请在系统设置中允许此 App 访问“照片”，然后返回重试。";
 "permission.retry" = "重新检查权限";
 "detail.memory_of_day" = "这一天的回忆";
+"button.delete_photo" = "确认删除";
+"dialog.delete_photo_title" = "删除这张照片？";
+"accessibility.delete_photo" = "删除当前照片";

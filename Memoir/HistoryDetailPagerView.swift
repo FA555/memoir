@@ -3,8 +3,11 @@ import SwiftUI
 struct HistoryDetailPagerView: View {
   let photos: [HistoryPhoto]
   @Binding var selectedIndex: Int
+  let onDeleteCurrent: (String) async -> Void
 
   @State private var presentedImageHeight: CGFloat = 320
+  @State private var showingDeletePopover = false
+  @State private var pendingDeletePhotoID: String?
 
   private var clampedIndex: Int {
     min(max(selectedIndex, 0), max(photos.count - 1, 0))
@@ -70,6 +73,45 @@ struct HistoryDetailPagerView: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         .frame(width: contentWidth)
         .frame(height: presentedImageHeight + 24)
+
+        HStack {
+          Spacer()
+
+          Button(role: .destructive) {
+            pendingDeletePhotoID = currentPhoto.id
+            showingDeletePopover = true
+          } label: {
+            Image(systemName: "trash")
+              .font(.title3.weight(.semibold))
+              .foregroundStyle(.red)
+              .frame(width: 44, height: 44)
+              .background(.thinMaterial, in: Circle())
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("accessibility.delete_photo")
+          .popover(isPresented: $showingDeletePopover, attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 12) {
+              Text("dialog.delete_photo_title")
+                .font(.headline)
+
+              Button("button.delete_photo", role: .destructive) {
+                guard let pendingDeletePhotoID else { return }
+                showingDeletePopover = false
+                Task {
+                  await onDeleteCurrent(pendingDeletePhotoID)
+                  self.pendingDeletePhotoID = nil
+                }
+              }
+              .buttonStyle(.glass)
+              .foregroundStyle(.red)
+            }
+            .padding(14)
+            .frame(minWidth: 220)
+            .presentationCompactAdaptation(.popover)
+          }
+          .padding(.trailing, 16)
+        }
+        .padding(.top, 6)
       }
       .frame(width: contentWidth)
       .frame(maxWidth: .infinity, alignment: .top)
@@ -86,6 +128,8 @@ struct HistoryDetailPagerView: View {
           containerWidth: contentWidth - 32, aspectRatio: currentPhoto.aspectRatio)
       }
     }
+    // Give GeometryReader a stable intrinsic height inside ScrollView to prevent scroll lock.
+    .frame(height: presentedImageHeight + 128)
   }
 
   private func dynamicImageHeight(containerWidth: CGFloat, aspectRatio: CGFloat) -> CGFloat {

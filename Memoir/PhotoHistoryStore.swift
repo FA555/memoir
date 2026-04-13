@@ -55,4 +55,21 @@ final class PhotoHistoryStore: ObservableObject {
 
     photos = loaded
   }
+
+  func deletePhoto(localIdentifier: String) async -> Bool {
+    guard authorizationState == .authorized || authorizationState == .limited else {
+      return false
+    }
+
+    let assets = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
+    guard assets.count > 0 else { return false }
+
+    return await withCheckedContinuation { continuation in
+      PHPhotoLibrary.shared().performChanges({
+        PHAssetChangeRequest.deleteAssets(assets)
+      }) { success, _ in
+        continuation.resume(returning: success)
+      }
+    }
+  }
 }

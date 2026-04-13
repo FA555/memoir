@@ -10,3 +10,6 @@
 "permission.open_settings_desc" = "Please allow photo access in Settings, then come back and try again.";
 "permission.retry" = "Check Permission Again";
 "detail.memory_of_day" = "Memories from this day";
+"button.delete_photo" = "Confirm Delete";
+"dialog.delete_photo_title" = "Delete this photo?";
+"accessibility.delete_photo" = "Delete current photo";
