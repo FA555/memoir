@@ -1,0 +1,14 @@
+"app.title.memoir" = "回忆";
+"loading.photo_permission" = "正在检查相册权限...";
+"empty.no_photos_title" = "这一天没有找到本机照片";
+"empty.no_photos_desc" = "试试切换其他日期，或确认相册中有该日期拍摄的图片。";
+"accessibility.open_photos_app" = "打开照片 App";
+"picker.month" = "月份";
+"picker.day" = "日期";
+"unit.month_suffix" = "月";
+"unit.day_suffix" = "日";
+"button.today" = "今天";
+"permission.need_photo_access" = "需要访问你的相册";
+"permission.open_settings_desc" = "请在系统设置中允许此 App 访问“照片”，然后返回重试。";
+"permission.retry" = "重新检查权限";
+"detail.memory_of_day" = "这一天的回忆";

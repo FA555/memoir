@@ -1,0 +1,12 @@
+"app.title.memoir" = "Memoir";
+"loading.photo_permission" = "Checking photo access...";
+"empty.no_photos_title" = "No photos found for this date";
+"empty.no_photos_desc" = "Try another date, or make sure your library has photos taken on this day.";
+"accessibility.open_photos_app" = "Open Photos app";
+"picker.month" = "Month";
+"picker.day" = "Day";
+"button.today" = "Today";
+"permission.need_photo_access" = "Photo access is required";
+"permission.open_settings_desc" = "Please allow photo access in Settings, then come back and try again.";
+"permission.retry" = "Check Permission Again";
+"detail.memory_of_day" = "Memories from this day";
