@@ -8,6 +8,8 @@
 "unit.month_suffix" = "月";
 "unit.day_suffix" = "日";
 "button.today" = "今天";
+"accessibility.previous_day" = "前一天";
+"accessibility.next_day" = "后一天";
 "permission.need_photo_access" = "需要访问你的相册";
 "permission.open_settings_desc" = "请在系统设置中允许此 App 访问“照片”，然后返回重试。";
 "permission.retry" = "重新检查权限";

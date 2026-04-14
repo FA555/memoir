@@ -6,6 +6,8 @@
 "picker.month" = "Month";
 "picker.day" = "Day";
 "button.today" = "Today";
+"accessibility.previous_day" = "Previous day";
+"accessibility.next_day" = "Next day";
 "permission.need_photo_access" = "Photo access is required";
 "permission.open_settings_desc" = "Please allow photo access in Settings, then come back and try again.";
 "permission.retry" = "Check Permission Again";

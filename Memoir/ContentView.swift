@@ -105,13 +105,27 @@ struct ContentView: View {
   }
 
   private var controlsBar: some View {
-    HStack {
+    HStack(spacing: 10) {
+      Button {
+        shiftSelectedDay(by: -1)
+      } label: {
+        Image(systemName: "chevron.left")
+      }
+      .buttonStyle(.glass)
+      .controlSize(.small)
+      .accessibilityLabel("accessibility.previous_day")
+
+      Spacer(minLength: 0)
+
       Picker("picker.month", selection: $selectedMonth) {
         ForEach(1...12, id: \.self) { month in
           Text(monthLabel(for: month)).tag(month)
         }
       }
       .pickerStyle(.menu)
+      .frame(minWidth: 80)
+      .lineLimit(1)
+      .layoutPriority(1)
 
       Picker("picker.day", selection: $selectedDay) {
         ForEach(1...maxDayInSelectedMonth, id: \.self) { day in
@@ -119,14 +133,26 @@ struct ContentView: View {
         }
       }
       .pickerStyle(.menu)
-
-      Spacer(minLength: 0)
+      .frame(minWidth: 80)
+      .lineLimit(1)
+      .layoutPriority(1)
 
       Button("button.today") {
         jumpToToday()
       }
-      .buttonStyle(.borderedProminent)
+      .buttonStyle(.glass)
       .controlSize(.small)
+
+      Spacer(minLength: 0)
+
+      Button {
+        shiftSelectedDay(by: 1)
+      } label: {
+        Image(systemName: "chevron.right")
+      }
+      .buttonStyle(.glass)
+      .controlSize(.small)
+      .accessibilityLabel("accessibility.next_day")
     }
     .padding(12)
     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -166,6 +192,23 @@ struct ContentView: View {
     let today = Date()
     selectedMonth = Calendar.current.component(.month, from: today)
     selectedDay = Calendar.current.component(.day, from: today)
+  }
+
+  private func shiftSelectedDay(by delta: Int) {
+    let year = Calendar.current.component(.year, from: Date())
+    var components = DateComponents()
+    components.year = year
+    components.month = selectedMonth
+    components.day = selectedDay
+
+    guard let baseDate = Calendar.current.date(from: components),
+      let shiftedDate = Calendar.current.date(byAdding: .day, value: delta, to: baseDate)
+    else {
+      return
+    }
+
+    selectedMonth = Calendar.current.component(.month, from: shiftedDate)
+    selectedDay = Calendar.current.component(.day, from: shiftedDate)
   }
 
   private func openPhotosApp() {
