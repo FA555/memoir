@@ -6,8 +6,6 @@ struct HistoryDetailPagerView: View {
   let onDeleteCurrent: (String) async -> Void
 
   @State private var measuredWidth: CGFloat = 360
-  @State private var showingDeletePopover = false
-  @State private var pendingDeletePhotoID: String?
 
   private var clampedIndex: Int {
     min(max(selectedIndex, 0), max(photos.count - 1, 0))
@@ -91,37 +89,18 @@ struct HistoryDetailPagerView: View {
         Spacer()
 
         Button(role: .destructive) {
-          pendingDeletePhotoID = currentPhoto.id
-          showingDeletePopover = true
+          Task {
+            await onDeleteCurrent(currentPhoto.id)
+          }
         } label: {
           Image(systemName: "trash")
-            .font(.title3)
+            .font(.title2)
             .foregroundStyle(.red)
             .frame(width: 48, height: 48)
-            .background(.thinMaterial, in: Circle())
         }
         .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
         .accessibilityLabel("accessibility.delete_photo")
-        .popover(isPresented: $showingDeletePopover, attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
-          VStack(alignment: .leading, spacing: 12) {
-            Text("dialog.delete_photo_title")
-              .font(.headline)
-
-            Button("button.delete_photo", role: .destructive) {
-              guard let pendingDeletePhotoID else { return }
-              showingDeletePopover = false
-              Task {
-                await onDeleteCurrent(pendingDeletePhotoID)
-                self.pendingDeletePhotoID = nil
-              }
-            }
-            .buttonStyle(.glass)
-            .foregroundStyle(.red)
-          }
-          .padding(14)
-          .frame(minWidth: 220)
-          .presentationCompactAdaptation(.popover)
-        }
         .padding(.trailing, 16)
       }
       .padding(.top, 6)
