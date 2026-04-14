@@ -10,6 +10,7 @@
 "button.today" = "今天";
 "accessibility.previous_day" = "前一天";
 "accessibility.next_day" = "后一天";
+"accessibility.share_photo" = "分享当前照片";
 "permission.need_photo_access" = "需要访问你的相册";
 "permission.open_settings_desc" = "请在系统设置中允许此 App 访问“照片”，然后返回重试。";
 "permission.retry" = "重新检查权限";
@@ -17,3 +18,8 @@
 "button.delete_photo" = "确认删除";
 "dialog.delete_photo_title" = "删除这张照片？";
 "accessibility.delete_photo" = "删除当前照片";
+"share.failed.title" = "无法分享";
+"share.failed.message" = "无法生成临时分享文件，请稍后重试。";
+"share.failed.ok" = "好的";
+"share.card.title" = "回忆";
+"share.card.footer" = "这一天拍下的瞬间";

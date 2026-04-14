@@ -9,9 +9,18 @@ import Photos
 import SwiftUI
 
 struct ContentView: View {
+  private struct SharePayload: Identifiable {
+    let id = UUID()
+    let fileURL: URL
+  }
+
   @State private var selectedMonth = Calendar.current.component(.month, from: Date())
   @State private var selectedDay = Calendar.current.component(.day, from: Date())
   @State private var selectedIndex = 0
+  @State private var sharePayload: SharePayload?
+  @State private var lastSharedFileURL: URL?
+  @State private var isPreparingShare = false
+  @State private var showShareFailedAlert = false
 
   @StateObject private var store = PhotoHistoryStore()
   @Environment(\.openURL) private var openURL
@@ -28,6 +37,12 @@ struct ContentView: View {
 
   private var usesEnglishStyleDateLabels: Bool {
     displayLocale.identifier.lowercased().hasPrefix("en")
+  }
+
+  private var currentPhoto: HistoryPhoto? {
+    guard !store.photos.isEmpty else { return nil }
+    let safeIndex = min(max(selectedIndex, 0), store.photos.count - 1)
+    return store.photos[safeIndex]
   }
 
   var body: some View {
@@ -70,6 +85,22 @@ struct ContentView: View {
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Button {
+            Task {
+              await shareCurrentSelection()
+            }
+          } label: {
+            if isPreparingShare {
+              ProgressView()
+            } else {
+              Image(systemName: "square.and.arrow.up")
+            }
+          }
+          .disabled(isPreparingShare || currentPhoto == nil)
+          .accessibilityLabel("accessibility.share_photo")
+        }
+
+        ToolbarItem(placement: .topBarTrailing) {
+          Button {
             openPhotosApp()
           } label: {
             Image(systemName: "photo.on.rectangle")
@@ -79,6 +110,14 @@ struct ContentView: View {
       }
     }
     .environment(\.locale, displayLocale)
+    .sheet(item: $sharePayload, onDismiss: cleanupSharedTempFile) { payload in
+      ActivityShareSheet(items: [payload.fileURL])
+    }
+    .alert("share.failed.title", isPresented: $showShareFailedAlert) {
+      Button("share.failed.ok", role: .cancel) {}
+    } message: {
+      Text("share.failed.message")
+    }
     .task {
       await store.ensureAuthorizationAndLoad(month: selectedMonth, day: selectedDay)
       selectedIndex = 0
@@ -227,6 +266,56 @@ struct ContentView: View {
     } else {
       selectedIndex = min(selectedIndex, store.photos.count - 1)
     }
+  }
+
+  private func shareCurrentPhoto(
+    localIdentifier: String,
+    shareTitle: String,
+    shareSubtitle: String,
+    shareFooter: String
+  ) async {
+    guard !isPreparingShare else { return }
+
+    isPreparingShare = true
+    defer { isPreparingShare = false }
+
+    guard
+      let fileURL = await store.prepareShareFile(
+        localIdentifier: localIdentifier,
+        title: shareTitle,
+        subtitle: shareSubtitle,
+        footer: shareFooter
+      )
+    else {
+      showShareFailedAlert = true
+      return
+    }
+
+    lastSharedFileURL = fileURL
+    sharePayload = SharePayload(fileURL: fileURL)
+  }
+
+  private func shareCurrentSelection() async {
+    guard let currentPhoto else { return }
+
+    let title = String(localized: "share.card.title")
+    let subtitle = currentPhoto.creationDate.formatted(
+      .dateTime.year().month(.wide).day().weekday(.wide)
+    )
+    let footer = String(localized: "share.card.footer")
+
+    await shareCurrentPhoto(
+      localIdentifier: currentPhoto.id,
+      shareTitle: title,
+      shareSubtitle: subtitle,
+      shareFooter: footer
+    )
+  }
+
+  private func cleanupSharedTempFile() {
+    guard let lastSharedFileURL else { return }
+    try? FileManager.default.removeItem(at: lastSharedFileURL)
+    self.lastSharedFileURL = nil
   }
 
   private var permissionDeniedView: some View {

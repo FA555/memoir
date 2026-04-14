@@ -8,6 +8,7 @@
 "button.today" = "Today";
 "accessibility.previous_day" = "Previous day";
 "accessibility.next_day" = "Next day";
+"accessibility.share_photo" = "Share current photo";
 "permission.need_photo_access" = "Photo access is required";
 "permission.open_settings_desc" = "Please allow photo access in Settings, then come back and try again.";
 "permission.retry" = "Check Permission Again";
@@ -15,3 +16,8 @@
 "button.delete_photo" = "Confirm Delete";
 "dialog.delete_photo_title" = "Delete this photo?";
 "accessibility.delete_photo" = "Delete current photo";
+"share.failed.title" = "Unable to Share";
+"share.failed.message" = "Could not generate a temporary file for sharing. Please try again.";
+"share.failed.ok" = "OK";
+"share.card.title" = "Memoir";
+"share.card.footer" = "Captured on this day";
