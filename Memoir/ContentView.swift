@@ -58,7 +58,7 @@ struct ContentView: View {
                 await deleteCurrentPhoto(localIdentifier: localIdentifier)
               }
             )
-              .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity)
           }
 
           // Leave drag space for the whole page scroll.
@@ -174,7 +174,8 @@ struct ContentView: View {
       return localizedMonthSymbols[month - 1]
     }
 
-    return "\(month.formatted(.number.locale(displayLocale)))\(String(localized: "unit.month_suffix"))"
+    return
+      "\(month.formatted(.number.locale(displayLocale)))\(String(localized: "unit.month_suffix"))"
   }
 
   private func dayLabel(for day: Int) -> String {
