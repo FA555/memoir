@@ -4,13 +4,18 @@ struct PageDotsView: View {
   let count: Int
   let selectedIndex: Int
 
-  private var maxVisibleDots: Int { 15 }
+  private var maxVisibleDots: Int { 11 }
+
+  private var safeSelectedIndex: Int {
+    min(max(selectedIndex, 0), max(0, count - 1))
+  }
 
   private var visibleRange: ClosedRange<Int> {
     guard count > maxVisibleDots else { return 0...(max(0, count - 1)) }
 
-    let half = maxVisibleDots / 2
-    let lower = max(0, min(selectedIndex - half, count - maxVisibleDots))
+    // Chunked window keeps selected dot visibly moving in long lists.
+    let chunkStart = (safeSelectedIndex / maxVisibleDots) * maxVisibleDots
+    let lower = max(0, min(chunkStart, count - maxVisibleDots))
     let upper = min(count - 1, lower + maxVisibleDots - 1)
     return lower...upper
   }
@@ -18,17 +23,18 @@ struct PageDotsView: View {
   var body: some View {
     HStack(spacing: 7) {
       if visibleRange.lowerBound > 0 {
-        DotOverflowMark()
+        DotOverflowMark(direction: .left)
       }
 
       ForEach(Array(visibleRange), id: \.self) { index in
-        Circle()
-          .fill(index == selectedIndex ? Color.white : Color.white.opacity(0.45))
-          .frame(width: index == selectedIndex ? 8 : 6, height: index == selectedIndex ? 8 : 6)
+        Capsule()
+          .fill(index == safeSelectedIndex ? Color.white : Color.white.opacity(0.45))
+          .frame(width: index == safeSelectedIndex ? 14 : 6, height: 6)
+          .animation(.easeOut(duration: 0.16), value: safeSelectedIndex)
       }
 
       if visibleRange.upperBound < count - 1 {
-        DotOverflowMark()
+        DotOverflowMark(direction: .right)
       }
     }
     .padding(.horizontal, 12)
@@ -38,9 +44,28 @@ struct PageDotsView: View {
 }
 
 struct DotOverflowMark: View {
+  enum Direction {
+    case left
+    case right
+  }
+
+  let direction: Direction
+
   var body: some View {
-    RoundedRectangle(cornerRadius: 2)
-      .fill(Color.white.opacity(0.45))
-      .frame(width: 10, height: 3)
+    HStack(spacing: 2) {
+      if direction == .left {
+        Image(systemName: "chevron.left")
+      }
+
+      RoundedRectangle(cornerRadius: 2)
+        .fill(Color.white.opacity(0.45))
+        .frame(width: 8, height: 3)
+
+      if direction == .right {
+        Image(systemName: "chevron.right")
+      }
+    }
+    .font(.system(size: 8, weight: .bold))
+    .foregroundStyle(Color.white.opacity(0.7))
   }
 }
