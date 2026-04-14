@@ -19,9 +19,13 @@ struct HistoryDetailPagerView: View {
     Binding(
       get: { clampedIndex },
       set: { newValue in
-        selectedIndex = min(max(newValue, 0), max(photos.count - 1, 0))
+        selectedIndex = clamped(newValue)
       }
     )
+  }
+
+  private func clamped(_ index: Int) -> Int {
+    min(max(index, 0), max(photos.count - 1, 0))
   }
 
   private var contentWidth: CGFloat {
@@ -82,8 +86,7 @@ struct HistoryDetailPagerView: View {
         }
       }
       .tabViewStyle(.page(indexDisplayMode: .never))
-      .frame(width: contentWidth)
-      .frame(height: pagerBlockHeight)
+      .frame(width: contentWidth, height: pagerBlockHeight)
 
       HStack {
         Spacer()
@@ -105,9 +108,8 @@ struct HistoryDetailPagerView: View {
       }
       .padding(.top, 6)
     }
-    .frame(width: contentWidth)
+    .frame(width: contentWidth, height: totalHeight, alignment: .top)
     .frame(maxWidth: .infinity, alignment: .top)
-    .frame(height: totalHeight, alignment: .top)
     .background {
       GeometryReader { proxy in
         Color.clear
@@ -120,10 +122,10 @@ struct HistoryDetailPagerView: View {
       }
     }
     .onAppear {
-      selectedIndex = min(max(selectedIndex, 0), max(photos.count - 1, 0))
+      selectedIndex = clamped(selectedIndex)
     }
     .onChange(of: photos.count) { _, _ in
-      selectedIndex = min(max(selectedIndex, 0), max(photos.count - 1, 0))
+      selectedIndex = clamped(selectedIndex)
     }
   }
 

@@ -6,21 +6,18 @@ struct HistoryDetailPageView: View {
   @State private var showOriginalViewer = false
 
   var body: some View {
-    ZStack {
-      AssetImageView(
-        assetIdentifier: photo.id,
-        targetSize: CGSize(width: 2600, height: 2600),
-        contentMode: .aspectFit
-      )
-      .padding(.horizontal, 16)
-      .padding(.vertical, 8)
-      .id(photo.id)
-      .onTapGesture {
-        showOriginalViewer = true
-      }
+    AssetImageView(
+      assetIdentifier: photo.id,
+      targetSize: CGSize(width: 2600, height: 2600),
+      contentMode: .aspectFit
+    )
+    .padding(.horizontal, 16)
+    .padding(.vertical, 8)
+    .id(photo.id)
+    .onTapGesture {
+      showOriginalViewer = true
     }
-    .frame(maxWidth: .infinity)
-    .frame(maxHeight: .infinity)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .fullScreenCover(isPresented: $showOriginalViewer) {
       FullScreenOriginalPhotoView(assetIdentifier: photo.id)
     }
