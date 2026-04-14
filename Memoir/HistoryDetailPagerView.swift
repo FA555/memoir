@@ -82,12 +82,12 @@ struct HistoryDetailPagerView: View {
             showingDeletePopover = true
           } label: {
             Image(systemName: "trash")
-              .font(.title3.weight(.semibold))
+              .font(.title3)
               .foregroundStyle(.red)
-              .frame(width: 44, height: 44)
+              .frame(width: 48, height: 48)
               .background(.thinMaterial, in: Circle())
           }
-          .buttonStyle(.plain)
+          .buttonStyle(.glass)
           .accessibilityLabel("accessibility.delete_photo")
           .popover(isPresented: $showingDeletePopover, attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
             VStack(alignment: .leading, spacing: 12) {
