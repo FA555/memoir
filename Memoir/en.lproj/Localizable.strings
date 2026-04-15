@@ -20,4 +20,4 @@
 "share.failed.message" = "Could not generate a temporary file for sharing. Please try again.";
 "share.failed.ok" = "OK";
 "share.card.title" = "Memoir";
-"share.card.footer" = "Captured on this day";
+"share.card.footer" = "Moment captured on this day";
