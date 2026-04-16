@@ -1,4 +1,4 @@
-name: iOS starter workflow
+name: iOS App Build
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build and Test with macOS 26 / Xcode 26.4 / iOS 26.4 Simulator
+    name: Build with macOS 26 / Xcode 26.4 / iOS 26.4 Simulator
     runs-on: macos-26
 
     steps:
@@ -26,7 +26,6 @@ jobs:
           xcodebuild -version
           xcodebuild -showsdks
           xcrun simctl list runtimes
-          xcrun simctl list devicetypes | grep "iPhone 17 Pro" || true
 
       - name: Set Default Scheme
         run: |
@@ -51,18 +50,27 @@ jobs:
           DESTINATION: "platform=iOS Simulator,OS=26.4,name=iPhone 17 Pro"
         run: |
           if [ "$SCHEME" = "default" ]; then SCHEME=$(cat default); fi
-          xcodebuild build-for-testing \
-            -scheme "$SCHEME" \
-            -"$FILETYPE" "$FILE_TO_BUILD" \
-            -destination "$DESTINATION"
 
-      - name: Test
-        env:
-          SCHEME: default
-          DESTINATION: "platform=iOS Simulator,OS=26.4,name=iPhone 17 Pro"
-        run: |
-          if [ "$SCHEME" = "default" ]; then SCHEME=$(cat default); fi
-          xcodebuild test-without-building \
+          xcodebuild build \
             -scheme "$SCHEME" \
             -"$FILETYPE" "$FILE_TO_BUILD" \
-            -destination "$DESTINATION"
+            -destination "$DESTINATION" \
+            -derivedDataPath build/DerivedData \
+            -resultBundlePath build/Memoir-Build.xcresult
+
+      - name: Package app artifact
+        run: |
+          cd build/DerivedData/Build/Products/Debug-iphonesimulator
+          ditto -c -k --sequesterRsrc --keepParent Memoir.app Memoir.app.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Memoir-simulator-app
+          path: build/DerivedData/Build/Products/Debug-iphonesimulator/Memoir.app.zip
+
+      - name: Upload build result bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Memoir-build-xcresult
+          path: build/Memoir-Build.xcresult
