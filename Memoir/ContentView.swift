@@ -49,6 +49,10 @@ struct ContentView: View {
     clampedIndex(selectedIndex, count: store.photos.count)
   }
 
+  private var selectedDateLoadKey: String {
+    "\(selectedMonth)-\(selectedDay)"
+  }
+
   var body: some View {
     NavigationStack {
       ScrollView {
@@ -122,24 +126,17 @@ struct ContentView: View {
     } message: {
       Text("share.failed.message")
     }
-    .task {
-      await store.ensureAuthorizationAndLoad(month: selectedMonth, day: selectedDay)
+    .task(id: selectedDateLoadKey) {
+      let targetMonth = selectedMonth
+      let targetDay = selectedDay
+      await store.ensureAuthorizationAndLoad(month: targetMonth, day: targetDay)
+      guard targetMonth == selectedMonth, targetDay == selectedDay else { return }
       selectedIndex = 0
     }
-    .onChange(of: selectedMonth) { _, newMonth in
-      Task {
-        let adjustedDay = min(selectedDay, maxDayInSelectedMonth)
-        if adjustedDay != selectedDay {
-          selectedDay = adjustedDay
-        }
-        await store.loadPhotos(month: newMonth, day: adjustedDay)
-        selectedIndex = 0
-      }
-    }
-    .onChange(of: selectedDay) { _, newDay in
-      Task {
-        await store.loadPhotos(month: selectedMonth, day: newDay)
-        selectedIndex = 0
+    .onChange(of: selectedMonth) { _, _ in
+      let adjustedDay = min(selectedDay, maxDayInSelectedMonth)
+      if adjustedDay != selectedDay {
+        selectedDay = adjustedDay
       }
     }
     .onChange(of: selectedIndex) { oldIndex, newIndex in

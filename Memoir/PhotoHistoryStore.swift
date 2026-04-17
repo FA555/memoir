@@ -10,6 +10,7 @@ final class PhotoHistoryStore: ObservableObject {
   @Published var photos: [HistoryPhoto] = []
 
   private let calendar = Calendar.current
+  private var latestPhotosLoadToken: Int = 0
   private let shareMaxImageWidth: CGFloat = 1440
   private let shareJPEGQuality: CGFloat = 0.88
   private let shareMaxCanvasDimension: CGFloat = 8192
@@ -22,12 +23,19 @@ final class PhotoHistoryStore: ObservableObject {
       authorizationState = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
     }
 
+    guard !Task.isCancelled else { return }
+
     await loadPhotos(month: month, day: day)
   }
 
   func loadPhotos(month: Int, day: Int) async {
+    latestPhotosLoadToken += 1
+    let loadToken = latestPhotosLoadToken
+
     guard authorizationState == .authorized || authorizationState == .limited else {
-      photos = []
+      if loadToken == latestPhotosLoadToken {
+        photos = []
+      }
       return
     }
 
@@ -58,6 +66,8 @@ final class PhotoHistoryStore: ObservableObject {
       }
       return result.sorted { $0.creationDate > $1.creationDate }
     }.value
+
+    guard !Task.isCancelled, loadToken == latestPhotosLoadToken else { return }
 
     photos = loaded
   }
