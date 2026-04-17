@@ -17,6 +17,7 @@ struct ContentView: View {
   @State private var selectedMonth = Calendar.current.component(.month, from: Date())
   @State private var selectedDay = Calendar.current.component(.day, from: Date())
   @State private var selectedIndex = 0
+  @State private var lastBrowseDirection = 1
   @State private var sharePayload: SharePayload?
   @State private var lastSharedFileURL: URL?
   @State private var isPreparingShare = false
@@ -41,8 +42,11 @@ struct ContentView: View {
 
   private var currentPhoto: HistoryPhoto? {
     guard !store.photos.isEmpty else { return nil }
-    let safeIndex = min(max(selectedIndex, 0), store.photos.count - 1)
-    return store.photos[safeIndex]
+    return store.photos[clampedSelectedIndex]
+  }
+
+  private var clampedSelectedIndex: Int {
+    clampedIndex(selectedIndex, count: store.photos.count)
   }
 
   var body: some View {
@@ -138,8 +142,12 @@ struct ContentView: View {
         selectedIndex = 0
       }
     }
+    .onChange(of: selectedIndex) { oldIndex, newIndex in
+      guard newIndex != oldIndex else { return }
+      lastBrowseDirection = newIndex > oldIndex ? 1 : -1
+    }
     .onChange(of: store.photos.count) { _, _ in
-      selectedIndex = 0
+      selectedIndex = clampedSelectedIndex
     }
   }
 
@@ -257,15 +265,31 @@ struct ContentView: View {
   }
 
   private func deleteCurrentPhoto(localIdentifier: String) async {
+    let deleteBaseIndex = clampedSelectedIndex
+    let oppositeDirectionOffset = lastBrowseDirection > 0 ? 1 : -1
+    let preferredBeforeDeleteIndex = clampedIndex(
+      deleteBaseIndex + oppositeDirectionOffset,
+      count: store.photos.count
+    )
+    let preferredPhotoID = store.photos.isEmpty ? nil : store.photos[preferredBeforeDeleteIndex].id
+
     let didDelete = await store.deletePhoto(localIdentifier: localIdentifier)
     guard didDelete else { return }
 
     await store.loadPhotos(month: selectedMonth, day: selectedDay)
     if store.photos.isEmpty {
       selectedIndex = 0
+    } else if let preferredPhotoID,
+      let preferredIndex = store.photos.firstIndex(where: { $0.id == preferredPhotoID })
+    {
+      selectedIndex = preferredIndex
     } else {
-      selectedIndex = min(selectedIndex, store.photos.count - 1)
+      selectedIndex = clampedIndex(deleteBaseIndex, count: store.photos.count)
     }
+  }
+
+  private func clampedIndex(_ index: Int, count: Int) -> Int {
+    min(max(index, 0), max(count - 1, 0))
   }
 
   private func shareCurrentPhoto(
