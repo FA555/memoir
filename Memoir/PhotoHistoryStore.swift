@@ -10,6 +10,10 @@ final class PhotoHistoryStore: ObservableObject {
   @Published var photos: [HistoryPhoto] = []
 
   private let calendar = Calendar.current
+  private let shareMaxImageWidth: CGFloat = 1440
+  private let shareJPEGQuality: CGFloat = 0.88
+  private let shareMaxCanvasDimension: CGFloat = 8192
+  private let shareMaxCanvasPixelCount: CGFloat = 33_000_000
 
   func ensureAuthorizationAndLoad(month: Int, day: Int) async {
     authorizationState = PHPhotoLibrary.authorizationStatus(for: .readWrite)
@@ -103,14 +107,16 @@ final class PhotoHistoryStore: ObservableObject {
 
     guard let data = result.0, let originalImage = UIImage(data: data) else { return nil }
 
+    let normalizedPhoto = normalizedPhotoForShare(originalImage)
+
     let composedImage = renderShareCard(
-      photo: originalImage,
+      photo: normalizedPhoto,
       title: title,
       subtitle: subtitle,
       footer: footer
     )
 
-    guard let composedData = composedImage.jpegData(compressionQuality: 0.92) else {
+    guard let composedData = composedImage.jpegData(compressionQuality: shareJPEGQuality) else {
       return nil
     }
 
@@ -131,10 +137,14 @@ final class PhotoHistoryStore: ObservableObject {
   private func renderShareCard(photo: UIImage, title: String, subtitle: String, footer: String)
     -> UIImage
   {
-    let minimumPhotoAspectRatio: CGFloat = 0.2
-    let minimumPhotoHeight: CGFloat = 1
-    let canvasWidth: CGFloat = 1080
-    let outerHorizontalInset: CGFloat = 64
+    let minimumPhotoSize: CGFloat = 1
+    let photoPixelSize = CGSize(
+      width: max(CGFloat(photo.cgImage?.width ?? Int(photo.size.width)), minimumPhotoSize),
+      height: max(CGFloat(photo.cgImage?.height ?? Int(photo.size.height)), minimumPhotoSize)
+    )
+
+    // Keep two outer layers around the exact-size image area.
+    let outerHorizontalInset: CGFloat = 56
     let topInset: CGFloat = 64
     let titleBlockHeight: CGFloat = 182
     let titleToImageGap: CGFloat = 40
@@ -145,12 +155,8 @@ final class PhotoHistoryStore: ObservableObject {
     let cardCornerRadius: CGFloat = 32
     let cardOverlayAlpha: CGFloat = 0.12
 
-    let imageInnerHorizontalInset: CGFloat = 32
+    let imageInnerHorizontalInset: CGFloat = 24
     let imageCornerRadius: CGFloat = 0
-    let imageShadowOffsetY: CGFloat = 14
-    let imageShadowBlur: CGFloat = 32
-    let imageShadowAlpha: CGFloat = 0.42
-    let imageShadowFillAlpha: CGFloat = 0.24
 
     let textHorizontalInset: CGFloat = 32
     let titleTopInset: CGFloat = 32
@@ -167,18 +173,34 @@ final class PhotoHistoryStore: ObservableObject {
     let gradientStartLocation: CGFloat = 0
     let gradientEndLocation: CGFloat = 1
 
-    let photoAspect = max(
-      minimumPhotoAspectRatio, photo.size.width / max(photo.size.height, minimumPhotoHeight))
-    let imageWidth = canvasWidth - outerHorizontalInset * 2
-    let imageHeight = imageWidth / photoAspect
-    let canvasHeight =
+    let imageWidth = photoPixelSize.width
+    let imageHeight = photoPixelSize.height
+    let cardWidth = imageWidth + imageInnerHorizontalInset * 2
+    let baseCanvasWidth = cardWidth + outerHorizontalInset * 2
+    let baseCanvasHeight =
       topInset + titleBlockHeight + titleToImageGap + imageHeight + imageToFooterGap
       + footerHeight + bottomInset
-    let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
-    let renderer = UIGraphicsImageRenderer(size: canvasSize)
+    let baseCanvasSize = CGSize(width: baseCanvasWidth, height: baseCanvasHeight)
+
+    let dimensionScale = min(1, shareMaxCanvasDimension / max(baseCanvasWidth, baseCanvasHeight))
+    let pixelScale = min(
+      1,
+      sqrt(shareMaxCanvasPixelCount / max(baseCanvasWidth * baseCanvasHeight, 1))
+    )
+    let renderScale = min(dimensionScale, pixelScale)
+
+    let renderedCanvasSize = CGSize(
+      width: max(floor(baseCanvasWidth * renderScale), 1),
+      height: max(floor(baseCanvasHeight * renderScale), 1)
+    )
+    let renderer = UIGraphicsImageRenderer(size: renderedCanvasSize)
 
     return renderer.image { context in
       let cg = context.cgContext
+      if renderScale < 0.999 {
+        // Keep existing layout math intact; shrink only final raster size for huge canvases.
+        cg.scaleBy(x: renderScale, y: renderScale)
+      }
       let bgPair = adaptiveBackgroundColors(from: photo)
       let bgColors = [bgPair.0.cgColor, bgPair.1.cgColor] as CFArray
       let colorSpace = CGColorSpaceCreateDeviceRGB()
@@ -191,7 +213,7 @@ final class PhotoHistoryStore: ObservableObject {
         cg.drawLinearGradient(
           gradient,
           start: CGPoint(x: 0, y: 0),
-          end: CGPoint(x: canvasSize.width, y: canvasSize.height),
+          end: CGPoint(x: baseCanvasSize.width, y: baseCanvasSize.height),
           options: []
         )
       }
@@ -199,8 +221,8 @@ final class PhotoHistoryStore: ObservableObject {
       let cardRect = CGRect(
         x: outerHorizontalInset,
         y: topInset,
-        width: canvasSize.width - outerHorizontalInset * 2,
-        height: canvasSize.height - topInset - bottomInset
+        width: cardWidth,
+        height: baseCanvasSize.height - topInset - bottomInset
       )
       let cardPath = UIBezierPath(roundedRect: cardRect, cornerRadius: cardCornerRadius)
       UIColor.white.withAlphaComponent(cardOverlayAlpha).setFill()
@@ -216,19 +238,8 @@ final class PhotoHistoryStore: ObservableObject {
 
       let imageCardPath = UIBezierPath(roundedRect: imageRect, cornerRadius: imageCornerRadius)
       cg.saveGState()
-      cg.setShadow(
-        offset: CGSize(width: 0, height: imageShadowOffsetY),
-        blur: imageShadowBlur,
-        color: UIColor.black.withAlphaComponent(imageShadowAlpha).cgColor
-      )
-      UIColor.black.withAlphaComponent(imageShadowFillAlpha).setFill()
-      imageCardPath.fill()
-      cg.restoreGState()
-
-      cg.saveGState()
       imageCardPath.addClip()
-      let drawingRect = aspectFitRect(for: photo.size, in: imageRect)
-      photo.draw(in: drawingRect)
+      photo.draw(in: imageRect)
       cg.restoreGState()
 
       let titleAttrs: [NSAttributedString.Key: Any] = [
@@ -347,19 +358,29 @@ final class PhotoHistoryStore: ObservableObject {
     return UIColor(red: r, green: g, blue: b, alpha: a)
   }
 
-  private func aspectFitRect(for imageSize: CGSize, in container: CGRect) -> CGRect {
-    guard imageSize.width > 0, imageSize.height > 0 else { return container }
-
-    let widthScale = container.width / imageSize.width
-    let heightScale = container.height / imageSize.height
-    let scale = min(widthScale, heightScale)
-
-    let targetSize = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
-    let origin = CGPoint(
-      x: container.midX - targetSize.width / 2,
-      y: container.midY - targetSize.height / 2
+  private func normalizedPhotoForShare(_ photo: UIImage) -> UIImage {
+    let minimumSize: CGFloat = 1
+    let sourceSize = CGSize(
+      width: max(CGFloat(photo.cgImage?.width ?? Int(photo.size.width)), minimumSize),
+      height: max(CGFloat(photo.cgImage?.height ?? Int(photo.size.height)), minimumSize)
     )
-    return CGRect(origin: origin, size: targetSize)
+
+    // Width-only policy: extra-tall images are kept if width is within limit.
+    let finalScale = min(1, shareMaxImageWidth / sourceSize.width)
+    guard finalScale < 0.999 else { return photo }
+
+    let targetSize = CGSize(
+      width: max(floor(sourceSize.width * finalScale), minimumSize),
+      height: max(floor(sourceSize.height * finalScale), minimumSize)
+    )
+
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1
+    format.opaque = false
+    let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+    return renderer.image { _ in
+      photo.draw(in: CGRect(origin: .zero, size: targetSize))
+    }
   }
 
 }
